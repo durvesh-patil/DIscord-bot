@@ -145,10 +145,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 // Short means only a single line of text
                 .setStyle(TextInputStyle.Short);
 
-            // const discordId = new TextInputBuilder()
-            //     .setCustomId('discordId')
-            //     .setLabel("Discord Username")
-            //     .setStyle(TextInputStyle.Short);
+
 
             const userAbout = new TextInputBuilder()
                 .setCustomId('userAbout')
