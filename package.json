@@ -4,7 +4,7 @@
   "description": "discord bot for basic commands",
   "main": "app.js",
   "scripts": {
-    "start": "nodemon app.js"
+    "start": "node app.js"
   },
   "author": "durvesh patil",
   "license": "ISC",
