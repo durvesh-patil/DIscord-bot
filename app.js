@@ -1,7 +1,7 @@
 const { Client, GatewayIntentBits, ModalBuilder, Events, ActionRowBuilder, TextInputBuilder, TextInputStyle, EmbedBuilder, ButtonBuilder, ButtonStyle, messageLink, GuildMemberRoleManager, Collection } = require('discord.js')
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMessageReactions] });
 const dotenv = require("dotenv")
-
+const fs = require('fs')
 
 
 
@@ -9,10 +9,15 @@ dotenv.config({ path: './config.env' })
 
 const token = process.env.BOT_TOKEN
 const roleId = process.env.ROLE_ID
+const limiterRoleId = process.env.ROLE_ID_LIMITER
 // console.log(roleId);
 
 const userVotes = new Map();
 const commandUsages = new Map();
+
+const usersData = JSON.parse(fs.readFileSync(`${__dirname}/users.json`, 'utf-8'))
+
+console.log(usersData);
 
 
 
@@ -84,14 +89,14 @@ client.on('messageCreate', (message) => {
     if (message.content === '!test') {
         const embed = new EmbedBuilder()
             .setColor('#0099ff')
-            .setTitle('Apply Now')
-            .setDescription('Click the button below to apply.')
-            .setFooter({ text: 'Test Embed' });
+            .setTitle('Apply Now\nClick the button below to create your application.\n')
+            .setDescription('RULES:\n Max 3 Applications per user.\n You can only apply once in 12 hours.\n Recheck your application before submitting.\n Results will be drawn in 72 hours from the moment of submission.\nGoodluck!.')
+            .setFooter({ text: '\nPowered by Saffire' });
 
         // Create the button
         const applyButton = new ButtonBuilder()
             .setCustomId('applyButton')
-            .setLabel('Apply')
+            .setLabel('Apply!')
             .setStyle(ButtonStyle.Success);
 
         const actionRow = new ActionRowBuilder().addComponents(applyButton);
@@ -105,11 +110,14 @@ client.on('messageCreate', (message) => {
 
 })
 
+
+
 //MODAL CREATE
 client.on(Events.InteractionCreate, async (interaction) => {
     try {
 
         if (!interaction.isButton()) return;
+        // console.log(usersData.find(obj => obj.userId == interaction.user.id).userUsage);
 
         if (interaction.customId === 'applyButton') {
             const guild = interaction.guild;
@@ -123,7 +131,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
 
             let commandUsageCount = commandUsages.get(interaction.user.id) || 0;
-            if (commandUsageCount >= maxUsage) {
+            if (commandUsageCount >= maxUsage || member.roles.cache.some(role => role.name === '3x Applied')) {
                 await interaction.reply({ content: 'You have reached the limit for applying the form.', ephemeral: true });
                 return;
             }
@@ -205,9 +213,27 @@ client.on(Events.InteractionCreate, async interaction => {
         if (!interaction.isModalSubmit()) return;
 
         if (interaction.customId === 'myModal') {
+
+
             //INCREASING USAGE OF FORM
+            const guild = interaction.guild;
+            const memberId = interaction.user.id;
+            const member = guild.members.cache.get(memberId);
+            const role = guild.roles.cache.get(roleId);
+            const limiterRole = guild.roles.cache.get(limiterRoleId);
+
+
+
+
             let commandUsagesCount = commandUsages.get(interaction.user.id) || 0;
             commandUsagesCount++;
+            commandUsages.set(interaction.user.id, commandUsagesCount)
+            console.log(commandUsagesCount);
+
+            if (commandUsagesCount === maxUsage) {
+                member.roles.add(limiterRole)
+
+            }
 
 
 
@@ -220,10 +246,10 @@ client.on(Events.InteractionCreate, async interaction => {
             let userOutputEmbed, actionRow, approveButton, rejectButton
 
             userOutputEmbed = new EmbedBuilder()
-                .setColor('Random')
+                .setColor('#800080')
                 .setTitle(`PROFILE:`)
                 .setAuthor({ name: `\n`, inline: false })
-                .setDescription(`DISCORD ID : ${interaction.user.username} #${interaction.user.discriminator}\n\nTwitter : https://twitter.com/${twitterIdOutput} `)
+                .setDescription(`DISCORD ID : <@${interaction.user.id}>\n\nTwitter : https://twitter.com/${twitterIdOutput} `)
                 .addFields(
                     { name: '\n\n', value: '\n\n' },
                     { name: 'Tell us about yourself :', value: `${userAboutOutput}`, inline: false },
@@ -252,7 +278,7 @@ client.on(Events.InteractionCreate, async interaction => {
                 .addComponents(approveButton, rejectButton);
 
             if (commandUsagesCount === 1) {
-                userOutputEmbed.setFooter({ text: ` Developed by SAFFIRE ` })
+                userOutputEmbed.setFooter({ text: ` Powered by SAFFIRE ` })
 
 
             } else if (commandUsagesCount >= 2) {
@@ -286,6 +312,11 @@ client.on(Events.InteractionCreate, async interaction => {
             collector.on('collect', (interaction) => {
                 const { customId, user } = interaction;
 
+                if (!member.roles.cache.some(role => role.name === 'Elite')) {
+                    return interaction.reply({ content: `You need "Elite" role to vote `, ephemeral: true })
+                }
+
+
                 if (userVotes.has(user.id)) {
                     interaction.reply({ content: 'You have already voted', ephemeral: true })
                     return;
@@ -302,6 +333,8 @@ client.on(Events.InteractionCreate, async interaction => {
                     voteCounts.option2++
                 }
 
+
+
                 userVotes.set(user.id, true);
 
                 //  interaction.reply(`You voted for ${customId}`);
@@ -310,11 +343,7 @@ client.on(Events.InteractionCreate, async interaction => {
             collector.on('end', (_, reason) => {
 
                 if (reason === 'Collector expired') {
-                    const guild = interaction.guild;
-                    const memberId = interaction.user.id;
 
-                    const member = guild.members.cache.get(memberId);
-                    const role = guild.roles.cache.get(roleId);
 
 
                     const winningOption = addRoleToUser(voteCounts, member, role)
@@ -331,9 +360,9 @@ client.on(Events.InteractionCreate, async interaction => {
                     let resultEmbed;
                     if (winningOption.startsWith('approved')) {
 
-                        resultEmbed = new EmbedBuilder().setColor('Green').setTitle(`Results for user : @${interaction.user.username}#${interaction.user.discriminator}`).addFields({ name: 'Approve\n', value: `${voteCounts.option1} %` }).addFields({ name: 'Reject\n', value: `${voteCounts.option2} %` }, { name: '\u200B', value: '\u200B' }, { name: 'Result', value: `${winningOption}` }).setFooter({ text: "Special role will be granted starting today" });
+                        resultEmbed = new EmbedBuilder().setColor('Green').setTitle(`Results for user :  `).setDescription(`<@${interaction.user.id}>`).addFields({ name: 'Approve\n', value: `${voteCounts.option1} %` }).addFields({ name: 'Reject\n', value: `${voteCounts.option2} %` }, { name: '\u200B', value: '\u200B' }, { name: 'Result', value: `${winningOption}` }).setFooter({ text: "Special role will be granted starting today" });
                     } else {
-                        resultEmbed = new EmbedBuilder().setColor('Red').setTitle(`Results for user : @${interaction.user.username}#${interaction.user.discriminator}`).addFields({ name: 'Approve\n', value: `${voteCounts.option1} %` }).addFields({ name: 'Reject\n', value: `${voteCounts.option2} %` }, { name: '\u200B', value: '\u200B' }, { name: 'Result', value: `${winningOption}` });
+                        resultEmbed = new EmbedBuilder().setColor('Red').setTitle(`Results for user :  `).setDescription(`<@${interaction.user.id}>`).addFields({ name: 'Approve\n', value: `${voteCounts.option1} %` }).addFields({ name: 'Reject\n', value: `${voteCounts.option2} %` }, { name: '\u200B', value: '\u200B' }, { name: 'Result', value: `${winningOption}` });
 
                     }
 
@@ -343,7 +372,7 @@ client.on(Events.InteractionCreate, async interaction => {
                 }
             });
 
-            interaction.reply({ content: `@${interaction.user.username} successfully applied`, ephemeral: true })
+            interaction.reply({ content: `<@${interaction.user.id}> successfully applied`, ephemeral: true })
 
         }
     } catch (err) {
