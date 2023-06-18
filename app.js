@@ -131,7 +131,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
 
             let commandUsageCount = commandUsages.get(interaction.user.id) || 0;
-            if (commandUsageCount >= maxUsage || member.roles.cache.some(role => role.name === '3x Applied')) {
+            if (member.roles.cache.some(role => role.name === '3x Applied')) {
                 await interaction.reply({ content: 'You have reached the limit for applying the form.', ephemeral: true });
                 return;
             }
@@ -282,7 +282,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
 
             } else if (commandUsagesCount >= 2) {
-                userOutputEmbed.setFooter({ text: 'This user has reapplied' })
+                userOutputEmbed.setFooter({ text: '\nThis user has reapplied\n\n Powered by SAFFIRE' })
 
             }
 
