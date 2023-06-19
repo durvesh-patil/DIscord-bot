@@ -15,20 +15,9 @@ const limiterRoleId = process.env.ROLE_ID_LIMITER
 const userVotes = new Map();
 const commandUsages = new Map();
 
-const usersData = JSON.parse(fs.readFileSync(`${__dirname}/users.json`, 'utf-8'))
-
-console.log(usersData);
-
-
 
 const maxUsage = 3;
-
-
-
-
-
-
-
+const imageURL = 'https://images.dog.ceo/breeds/terrier-toy/n02087046_9864.jpg';
 
 
 
@@ -90,8 +79,8 @@ client.on('messageCreate', (message) => {
         const embed = new EmbedBuilder()
             .setColor('#0099ff')
             .setTitle('Apply Now\nClick the button below to create your application.\n')
-            .setDescription('RULES:\n Max 3 Applications per user.\n You can only apply once in 12 hours.\n Recheck your application before submitting.\n Results will be drawn in 72 hours from the moment of submission.\nGoodluck!.')
-            .setFooter({ text: '\nPowered by Saffire' });
+            .setDescription('RULES:\n Max 3 Applications per user.\n Recheck your application before submitting.\n Results will be drawn in 72 hours from the moment of submission.\nGoodluck!.')
+            .setFooter({ text: '\nPowered by Saffire', iconURL: `${imageURL}` });
 
         // Create the button
         const applyButton = new ButtonBuilder()
@@ -259,6 +248,7 @@ client.on(Events.InteractionCreate, async interaction => {
                     { name: 'How can you enrich community experience :', value: `${communityAboutOutput}`, inline: false },
                     { name: '\n\n', value: '\n\n' }
                 )
+                .setThumbnail(`${interaction.user.displayAvatarURL()}`)
                 .setTimestamp()
 
 
@@ -277,12 +267,15 @@ client.on(Events.InteractionCreate, async interaction => {
             actionRow = new ActionRowBuilder()
                 .addComponents(approveButton, rejectButton);
 
+
+
+
             if (commandUsagesCount === 1) {
-                userOutputEmbed.setFooter({ text: ` Powered by SAFFIRE ` })
+                userOutputEmbed.setFooter({ text: ` Powered by SAFFIRE `, iconURL: `${imageURL}` })//.setThumbnail('https://images.dog.ceo/breeds/terrier-toy/n02087046_9864.jpg')
 
 
             } else if (commandUsagesCount >= 2) {
-                userOutputEmbed.setFooter({ text: '\nThis user has reapplied\n\n Powered by SAFFIRE' })
+                userOutputEmbed.addFields({ name: "\n\n", value: 'This user has reapplied' }).setFooter({ text: '\n Powered by SAFFIRE', iconURL: `${imageURL}` })
 
             }
 
@@ -303,7 +296,7 @@ client.on(Events.InteractionCreate, async interaction => {
             const filter = (interaction) => interaction.isButton() && interaction.message.id === pollMessage.id;
             const collector = pollMessage.createMessageComponentCollector({ filter }); // Adjust the time according to your needs
 
-            const threeDaysDuration = 10 * 1000;
+            const threeDaysDuration = 20 * 1000;
 
             setTimeout(() => {
                 collector.stop('Collector expired');
@@ -358,7 +351,8 @@ client.on(Events.InteractionCreate, async interaction => {
 
                     //pollMessage.delete()
                     let resultEmbed;
-                    if (winningOption.startsWith('approved')) {
+                    if (winningOption.startsWith('APPROVED')) {
+
 
                         resultEmbed = new EmbedBuilder().setColor('Green').setTitle(`Results for user :  `).setDescription(`<@${interaction.user.id}>`).addFields({ name: 'Approve\n', value: `${voteCounts.option1} %` }).addFields({ name: 'Reject\n', value: `${voteCounts.option2} %` }, { name: '\u200B', value: '\u200B' }, { name: 'Result', value: `${winningOption}` }).setFooter({ text: "Special role will be granted starting today" });
                     } else {
