@@ -1,40 +1,33 @@
 const { Client, GatewayIntentBits, ModalBuilder, Events, ActionRowBuilder, TextInputBuilder, TextInputStyle, EmbedBuilder, ButtonBuilder, ButtonStyle, messageLink, GuildMemberRoleManager, Collection } = require('discord.js')
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMessageReactions] });
 const dotenv = require("dotenv")
-
+const fs = require('fs')
 
 
 
 dotenv.config({ path: './config.env' })
 
 const token = process.env.BOT_TOKEN
-const guildId = process.env.GUILD_ID
 const roleId = process.env.ROLE_ID
+const limiterRoleId = process.env.ROLE_ID_LIMITER
+// console.log(roleId);
 
 const userVotes = new Map();
-// const commandCooldowns = new Map();
 const commandUsages = new Map();
 
 
-const cooldownDuration = 10000;
-const maxUsage = 2;
-
-
-
-
-
-
-
+const maxUsage = 3;
+const imageURL = 'https://images.dog.ceo/breeds/terrier-toy/n02087046_9864.jpg';
 
 
 
 // Calculate the total number of votes
 const addRoleToUser = (voteCounts, member, role) => {
-    let winningOption = null;
+    let winningOption
     const totalVotes = Object.values(voteCounts).reduce((total, count) => total + count, 0);
     // console.log(totalVotes);
 
-    if (totalVotes === 0) return winningOption = 'rejected 💥💥';
+    if (totalVotes === 0) return winningOption = 'REJECTED ❌❌';
 
 
     // Calculate the percentage of votes for each option
@@ -48,19 +41,19 @@ const addRoleToUser = (voteCounts, member, role) => {
     // Determine the winning option
 
     if (percentageOption1 >= 69) {
-        winningOption = 'approved 💚💚';
+        winningOption = 'APPROVED ✅✅';
         member.roles.add(role);
 
     } else if (percentageOption2 >= 69) {
-        winningOption = 'rejected 💥💥';
+        winningOption = 'REJECTED ❌❌';
     }
     else if (percentageOption1 === percentageOption2) {
-        winningOption = 'rejected 💥💥';
+        winningOption = 'REJECTED ❌❌';
     }
-    if (winningOption) return winningOption
 
-    return winningOption = null
+
     // console.log(`Winning option with 69% or more votes: ${winningOption}`);
+    return winningOption
 }
 
 
@@ -78,20 +71,21 @@ client.on('ready', () => {
 
 
 });
-//TEST
-client.on('messageCreate', (message) => {
 
+// APPLY BUTTON CREATE
+client.on('messageCreate', (message) => {
+    // console.log(message);
     if (message.content === '!test') {
         const embed = new EmbedBuilder()
             .setColor('#0099ff')
-            .setTitle('Apply Now')
-            .setDescription('Click the button below to apply.')
-            .setFooter({ text: 'Test Embed' });
+            .setTitle('Apply Now\nClick the button below to create your application.\n')
+            .setDescription('RULES:\n Max 3 Applications per user.\n Recheck your application before submitting.\n Results will be drawn in 72 hours from the moment of submission.\nGoodluck!.')
+            .setFooter({ text: '\nPowered by Saffire', iconURL: `${imageURL}` });
 
         // Create the button
         const applyButton = new ButtonBuilder()
             .setCustomId('applyButton')
-            .setLabel('Apply')
+            .setLabel('Apply!')
             .setStyle(ButtonStyle.Success);
 
         const actionRow = new ActionRowBuilder().addComponents(applyButton);
@@ -105,148 +99,32 @@ client.on('messageCreate', (message) => {
 
 })
 
-client.on(Events.InteractionCreate, async (interaction) => {
-    try {
-
-        if (!interaction.isButton()) return;
-
-        if (interaction.customId === 'applyButton') {
-            const guild = interaction.guild;
-            const memberId = interaction.user.id;
-            const member = guild.members.cache.get(memberId);
-
-            if (member.roles.cache.some(role => role.name === 'tester')) {
-                return interaction.reply({ content: 'You are already approved -_-', ephemeral: true })
-            }
-
-
-
-            let commandUsageCount = commandUsages.get(interaction.user.id) || 0;
-            if (commandUsageCount >= maxUsage) {
-                await interaction.reply({ content: 'You have reached the limit for applying the form .', ephemeral: true });
-                return;
-            }
-
-            // if (commandCooldowns.has(interaction.user.id)) {
-            //     const cooldownEnd = commandCooldowns.get(interaction.user.id);
-            //     const remainingTime = cooldownEnd - Date.now();
-
-            //     // Command is still on cooldown
-            //     return interaction.reply(`Too fast there. Please wait ${Math.ceil(remainingTime / 1000)} seconds before using it again.`);
-            // }
-
-
-            // Create the modal
-            const modal = new ModalBuilder()
-                .setCustomId('myModal')
-                .setTitle('Apply Form');
-
-
-
-            // Create the text input components
-            const twitterHandleInput = new TextInputBuilder()
-                .setCustomId('twitterHandleInput')
-                // The label is the prompt the user sees for this input
-                .setLabel("Twitter Username (@)")
-                // Short means only a single line of text
-                .setStyle(TextInputStyle.Short);
-
-            const discordId = new TextInputBuilder()
-                .setCustomId('discordId')
-                .setLabel("Discord Username")
-                .setStyle(TextInputStyle.Short);
-
-            const userAbout = new TextInputBuilder()
-                .setCustomId('userAbout')
-                .setLabel("Tell us about yourself ?")
-                .setStyle(TextInputStyle.Paragraph)
-                .setMaxLength(750)
-
-            const skillsAbout = new TextInputBuilder()
-                .setCustomId('skillsAbout')
-                .setLabel("Flex your skills & contributions to ecosystem")
-                .setStyle(TextInputStyle.Paragraph)
-                .setMaxLength(750)
-
-            const q5 = new TextInputBuilder()
-                .setCustomId('q5')
-                .setLabel("q5 ")
-                .setStyle(TextInputStyle.Paragraph)
-                .setMaxLength(750)
-
-
-            // An action row only holds one text input,
-            // so you need one action row per text input.
-            const firstActionRow = new ActionRowBuilder().addComponents(twitterHandleInput);
-            const secondActionRow = new ActionRowBuilder().addComponents(discordId);
-            const thirdActionRow = new ActionRowBuilder().addComponents(userAbout);
-            const fourthActionRow = new ActionRowBuilder().addComponents(skillsAbout);
-            const fifthActionRow = new ActionRowBuilder().addComponents(q5);
-            // Add inputs to the modal
-            modal.addComponents(secondActionRow, firstActionRow, thirdActionRow, fourthActionRow, fifthActionRow);
-
-            // Show the modal to the user
-            await interaction.showModal(modal);
-
-            // const cooldownEnd = Date.now() + cooldownDuration
-            // commandCooldowns.set(interaction.user.id, cooldownEnd)
-
-            // setTimeout(() => {
-            //     commandCooldowns.delete(interaction.user.id);
-            // }, cooldownDuration);
-
-
-        }
-
-        // if (interaction.commandName === 'react') {
-        //     interaction.reply('Reacting with fruits!');
-        //     const message = await interaction.fetchReply();
-        //     message.react('🍎');
-        //     message.react('🍊');
-        //     message.react('🍇');
-        // }
-
-
-
-    } catch (err) {
-        console.log(err);
-    }
-})
-
-
 
 
 //MODAL CREATE
 client.on(Events.InteractionCreate, async (interaction) => {
     try {
 
-        if (!interaction.isChatInputCommand()) return;
-        // console.log(interaction.user.id);
+        if (!interaction.isButton()) return;
+        // console.log(usersData.find(obj => obj.userId == interaction.user.id).userUsage);
 
-        if (interaction.commandName === 'apply') {
+        if (interaction.customId === 'applyButton') {
             const guild = interaction.guild;
             const memberId = interaction.user.id;
             const member = guild.members.cache.get(memberId);
 
-            if (member.roles.cache.some(role => role.name === 'tester')) {
-                return interaction.reply('You are already approved -_-')
+            if (member.roles.cache.some(role => role.name === 'Elite')) {
+                return interaction.reply({ content: 'You are already approved -_-', ephemeral: true })
             }
 
 
 
             let commandUsageCount = commandUsages.get(interaction.user.id) || 0;
-            if (commandUsageCount >= maxUsage) {
-                await interaction.reply('You have reached the limit for applying the form .');
+            if (member.roles.cache.some(role => role.name === '3x Applied')) {
+                await interaction.reply({ content: 'You have reached the limit for applying the form.', ephemeral: true });
                 return;
             }
 
-            if (commandCooldowns.has(interaction.user.id)) {
-                const cooldownEnd = commandCooldowns.get(interaction.user.id);
-                const remainingTime = cooldownEnd - Date.now();
-
-                // Command is still on cooldown
-                return interaction.reply(`Too fast there. Please wait ${Math.ceil(remainingTime / 1000)} seconds before using it again.`);
-            }
 
 
             // Create the modal
@@ -264,10 +142,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 // Short means only a single line of text
                 .setStyle(TextInputStyle.Short);
 
-            const discordId = new TextInputBuilder()
-                .setCustomId('discordId')
-                .setLabel("Discord Username")
-                .setStyle(TextInputStyle.Short);
+
 
             const userAbout = new TextInputBuilder()
                 .setCustomId('userAbout')
@@ -281,9 +156,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 .setStyle(TextInputStyle.Paragraph)
                 .setMaxLength(750)
 
-            const q5 = new TextInputBuilder()
-                .setCustomId('q5')
-                .setLabel("q5 ")
+            const communityAbout = new TextInputBuilder()
+                .setCustomId('communityAbout')
+                .setLabel("How can you enrich community experience ?  ")
                 .setStyle(TextInputStyle.Paragraph)
                 .setMaxLength(750)
 
@@ -291,33 +166,18 @@ client.on(Events.InteractionCreate, async (interaction) => {
             // An action row only holds one text input,
             // so you need one action row per text input.
             const firstActionRow = new ActionRowBuilder().addComponents(twitterHandleInput);
-            const secondActionRow = new ActionRowBuilder().addComponents(discordId);
+            // const secondActionRow = new ActionRowBuilder().addComponents(discordId);
             const thirdActionRow = new ActionRowBuilder().addComponents(userAbout);
             const fourthActionRow = new ActionRowBuilder().addComponents(skillsAbout);
-            const fifthActionRow = new ActionRowBuilder().addComponents(q5);
+            const fifthActionRow = new ActionRowBuilder().addComponents(communityAbout);
             // Add inputs to the modal
-            modal.addComponents(firstActionRow, secondActionRow, thirdActionRow, fourthActionRow, fifthActionRow);
+            modal.addComponents(firstActionRow, thirdActionRow, fourthActionRow, fifthActionRow);
 
             // Show the modal to the user
             await interaction.showModal(modal);
 
-            const cooldownEnd = Date.now() + cooldownDuration
-            commandCooldowns.set(interaction.user.id, cooldownEnd)
-
-            setTimeout(() => {
-                commandCooldowns.delete(interaction.user.id);
-            }, cooldownDuration);
-
 
         }
-
-        // if (interaction.commandName === 'react') {
-        //     interaction.reply('Reacting with fruits!');
-        //     const message = await interaction.fetchReply();
-        //     message.react('🍎');
-        //     message.react('🍊');
-        //     message.react('🍇');
-        // }
 
 
 
@@ -326,12 +186,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
     } catch (err) {
         console.log(err);
     }
-
-
-
-
-
 })
+
+
+
+
+
+
 
 //MODAL SUMBIT
 client.on(Events.InteractionCreate, async interaction => {
@@ -341,41 +202,55 @@ client.on(Events.InteractionCreate, async interaction => {
         if (!interaction.isModalSubmit()) return;
 
         if (interaction.customId === 'myModal') {
+
+
             //INCREASING USAGE OF FORM
+            const guild = interaction.guild;
+            const memberId = interaction.user.id;
+            const member = guild.members.cache.get(memberId);
+            const role = guild.roles.cache.get(roleId);
+            const limiterRole = guild.roles.cache.get(limiterRoleId);
+
+
+
+
             let commandUsagesCount = commandUsages.get(interaction.user.id) || 0;
             commandUsagesCount++;
             commandUsages.set(interaction.user.id, commandUsagesCount)
+            console.log(commandUsagesCount);
 
-            console.log(commandUsagesCount, commandUsages);
+            if (commandUsagesCount === maxUsage) {
+                member.roles.add(limiterRole)
+
+            }
 
 
 
             // console.log(interaction);
-
             const twitterIdOutput = interaction.fields.getTextInputValue('twitterHandleInput')
-            const discordIdOutput = interaction.fields.getTextInputValue('discordId')
             const userAboutOutput = interaction.fields.getTextInputValue('userAbout')
             const skillsAboutOutput = interaction.fields.getTextInputValue('skillsAbout')
-            const q5Output = interaction.fields.getTextInputValue('q5')
+            const communityAboutOutput = interaction.fields.getTextInputValue('communityAbout')
 
             let userOutputEmbed, actionRow, approveButton, rejectButton
 
             userOutputEmbed = new EmbedBuilder()
-                .setColor('Random')
-                .setTitle(`Twitter : https://twitter.com/${twitterIdOutput}`)
-                .setURL(`https://twitter.com/${twitterIdOutput}`)
-                .setAuthor({ name: `YOUR CLICK WILL ONLY BE COUNT ONCE` })
-                .setDescription(' YOUR VOTE WILL ONLY BE COUNT(one click on any button) ONCE SO MAKE SURE TO VOTE CAREFULLY! ')
+                .setColor('#800080')
+                .setTitle(`PROFILE:`)
+                .setAuthor({ name: `\n`, inline: false })
+                .setDescription(`DISCORD ID : <@${interaction.user.id}>\n\nTwitter : https://twitter.com/${twitterIdOutput} `)
                 .addFields(
-                    { name: '\u200B', value: '\u200B' },
-                    { name: '<QUESTION>', value: `${q5Output}` },
-                    { name: '\u200B', value: '\u200B' },
-                    { name: 'The user  :', value: `${userAboutOutput}` },
-                    { name: '\u200B', value: '\u200B' },
-                    { name: 'User skills and contributions :', value: `${skillsAboutOutput}`, inline: true },
-                    { name: '\u200B', value: '\u200B' }
+                    { name: '\n\n', value: '\n\n' },
+                    { name: 'Tell us about yourself :', value: `${userAboutOutput}`, inline: false },
+                    { name: '\n\n', value: '\n\n' },
+                    { name: 'Flex your skills & contributions to ecosystem :', value: `${skillsAboutOutput}`, inline: false },
+                    { name: '\n\n', value: '\n\n' },
+                    { name: 'How can you enrich community experience :', value: `${communityAboutOutput}`, inline: false },
+                    { name: '\n\n', value: '\n\n' }
                 )
+                .setThumbnail(`${interaction.user.displayAvatarURL()}`)
                 .setTimestamp()
+
 
 
 
@@ -392,19 +267,22 @@ client.on(Events.InteractionCreate, async interaction => {
             actionRow = new ActionRowBuilder()
                 .addComponents(approveButton, rejectButton);
 
+
+
+
             if (commandUsagesCount === 1) {
-                userOutputEmbed.setFooter({ text: " helllo" })
+                userOutputEmbed.setFooter({ text: ` Powered by SAFFIRE `, iconURL: `${imageURL}` })//.setThumbnail('https://images.dog.ceo/breeds/terrier-toy/n02087046_9864.jpg')
 
 
             } else if (commandUsagesCount >= 2) {
-                userOutputEmbed.setFooter({ text: 'This user has reapplied' })
+                userOutputEmbed.addFields({ name: "\n\n", value: 'This user has reapplied' }).setFooter({ text: '\n Powered by SAFFIRE', iconURL: `${imageURL}` })
 
             }
 
 
 
 
-            const targetChannel = client.channels.cache.get('1116416945676365915')
+            const targetChannel = client.channels.cache.get(process.env.CHANNEL_ID)
 
             const pollMessage = await targetChannel.send({ embeds: [userOutputEmbed], components: [actionRow] });
 
@@ -416,14 +294,24 @@ client.on(Events.InteractionCreate, async interaction => {
 
 
             const filter = (interaction) => interaction.isButton() && interaction.message.id === pollMessage.id;
-            const collector = pollMessage.createMessageComponentCollector({ filter, time: 20000 }); // Adjust the time according to your needs
+            const collector = pollMessage.createMessageComponentCollector({ filter }); // Adjust the time according to your needs
 
+            const threeDaysDuration = 20 * 1000;
 
+            setTimeout(() => {
+                collector.stop('Collector expired');
+            }, threeDaysDuration);
 
             collector.on('collect', (interaction) => {
                 const { customId, user } = interaction;
 
+                if (!member.roles.cache.some(role => role.name === 'Elite')) {
+                    return interaction.reply({ content: `You need "Elite" role to vote `, ephemeral: true })
+                }
+
+
                 if (userVotes.has(user.id)) {
+                    interaction.reply({ content: 'You have already voted', ephemeral: true })
                     return;
                 }
 
@@ -438,46 +326,47 @@ client.on(Events.InteractionCreate, async interaction => {
                     voteCounts.option2++
                 }
 
+
+
                 userVotes.set(user.id, true);
 
                 //  interaction.reply(`You voted for ${customId}`);
             });
 
-            collector.on('end', () => {
-                // console.log(interaction);
+            collector.on('end', (_, reason) => {
 
-                const guild = interaction.guild;
-                const memberId = interaction.user.id;
-
-                const member = guild.members.cache.get(memberId);
-                const role = guild.roles.cache.get(roleId);
+                if (reason === 'Collector expired') {
 
 
-                const winningOption = addRoleToUser(voteCounts, member, role)
-                // console.log(winningOption);
+
+                    const winningOption = addRoleToUser(voteCounts, member, role)
+                    console.log(winningOption);
 
 
-                // Disable the buttons after the collection ends
-                approveButton.setDisabled(true);
-                rejectButton.setDisabled(true);
-                actionRow.components = [approveButton, rejectButton];
-                pollMessage.edit({ components: [actionRow] });
-                //pollMessage.delete()
-                let resultEmbed;
-                if (winningOption.startsWith('approved')) {
+                    // Disable the buttons after the collection ends
+                    approveButton.setDisabled(true);
+                    rejectButton.setDisabled(true);
+                    actionRow.components = [approveButton, rejectButton];
+                    pollMessage.edit({ components: [actionRow] });
 
-                    resultEmbed = new EmbedBuilder().setColor('Green').setTitle(`Results for user : @${discordIdOutput}`).addFields({ name: 'Approve', value: `${voteCounts.option1} %` }).addFields({ name: 'Reject', value: `${voteCounts.option2} %` }, { name: 'Result', value: `${winningOption}` }).setFooter({ text: "Special role will be granted starting today" });
-                } else {
-                    resultEmbed = new EmbedBuilder().setColor('Red').setTitle(`Results for user : @${discordIdOutput}`).addFields({ name: 'Approve', value: `${voteCounts.option1} %` }).addFields({ name: 'Reject', value: `${voteCounts.option2} %` }, { name: 'Result', value: `${winningOption}` });
+                    //pollMessage.delete()
+                    let resultEmbed;
+                    if (winningOption.startsWith('APPROVED')) {
 
+
+                        resultEmbed = new EmbedBuilder().setColor('Green').setTitle(`Results for user :  `).setDescription(`<@${interaction.user.id}>`).addFields({ name: 'Approve\n', value: `${voteCounts.option1} %` }).addFields({ name: 'Reject\n', value: `${voteCounts.option2} %` }, { name: '\u200B', value: '\u200B' }, { name: 'Result', value: `${winningOption}` }).setFooter({ text: "Special role will be granted starting today" });
+                    } else {
+                        resultEmbed = new EmbedBuilder().setColor('Red').setTitle(`Results for user :  `).setDescription(`<@${interaction.user.id}>`).addFields({ name: 'Approve\n', value: `${voteCounts.option1} %` }).addFields({ name: 'Reject\n', value: `${voteCounts.option2} %` }, { name: '\u200B', value: '\u200B' }, { name: 'Result', value: `${winningOption}` });
+
+                    }
+
+                    targetChannel.send({ embeds: [resultEmbed] });
+
+                    userVotes.clear();
                 }
-
-                targetChannel.send({ embeds: [resultEmbed] });
-
-                userVotes.clear();
             });
 
-            interaction.reply({ content: `@${interaction.user.username} successfully applied`, ephemeral: true })
+            interaction.reply({ content: `<@${interaction.user.id}> successfully applied`, ephemeral: true })
 
         }
     } catch (err) {

@@ -9,8 +9,10 @@ dotenv.config({ path: './config.env' })
 
 const token = process.env.BOT_TOKEN
 const roleId = process.env.ROLE_ID
-const limiterRoleId = process.env.ROLE_ID_LIMITER
-// console.log(roleId);
+const roleId3x = process.env.ROLE_ID_LIMITER
+const roleId2x = process.env.ROLE_ID_2X
+const roleId1x = process.env.ROLE_ID_1X
+console.log(roleId2x, roleId1x)
 
 const userVotes = new Map();
 const commandUsages = new Map();
@@ -119,7 +121,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
 
 
-            let commandUsageCount = commandUsages.get(interaction.user.id) || 0;
+            // let commandUsageCount = commandUsages.get(interaction.user.id) || 0;
             if (member.roles.cache.some(role => role.name === '3x Applied')) {
                 await interaction.reply({ content: 'You have reached the limit for applying the form.', ephemeral: true });
                 return;
@@ -204,25 +206,34 @@ client.on(Events.InteractionCreate, async interaction => {
         if (interaction.customId === 'myModal') {
 
 
-            //INCREASING USAGE OF FORM
+
             const guild = interaction.guild;
             const memberId = interaction.user.id;
             const member = guild.members.cache.get(memberId);
             const role = guild.roles.cache.get(roleId);
-            const limiterRole = guild.roles.cache.get(limiterRoleId);
+            const role3x = guild.roles.cache.get(roleId3x);
+            const role2x = guild.roles.cache.get(roleId2x);
+            const role1x = guild.roles.cache.get(roleId1x);
 
-
-
-
-            let commandUsagesCount = commandUsages.get(interaction.user.id) || 0;
-            commandUsagesCount++;
-            commandUsages.set(interaction.user.id, commandUsagesCount)
-            console.log(commandUsagesCount);
-
-            if (commandUsagesCount === maxUsage) {
-                member.roles.add(limiterRole)
-
+            if (!member.roles.cache.some(role => role.name === '1x Applied')) {
+                console.log('hello');
+                member.roles.add(role1x)
+            } else if (!member.roles.cache.some(role => role.name === '2x Applied')) {
+                member.roles.add(role2x)
+            } else if (!member.roles.cache.some(role => role.name === '3x Applied')) {
+                member.roles.add(role3x)
             }
+
+
+            // let commandUsagesCount = commandUsages.get(interaction.user.id) || 0;
+            // commandUsagesCount++;
+            // commandUsages.set(interaction.user.id, commandUsagesCount)
+            // console.log(commandUsagesCount);
+
+            // if (commandUsagesCount === maxUsage) {
+            //     member.roles.add(limiterRole)
+
+            // }
 
 
 
@@ -268,16 +279,31 @@ client.on(Events.InteractionCreate, async interaction => {
                 .addComponents(approveButton, rejectButton);
 
 
-
-
-            if (commandUsagesCount === 1) {
-                userOutputEmbed.setFooter({ text: ` Powered by SAFFIRE `, iconURL: `${imageURL}` })//.setThumbnail('https://images.dog.ceo/breeds/terrier-toy/n02087046_9864.jpg')
-
-
-            } else if (commandUsagesCount >= 2) {
+            //ROLE DOES NOT EXIST IN CACHE DIRECTLY IN THIS FUCNTION
+            if (member.roles.cache.some(role => role.name === '1x Applied')) {
+                console.log('hallooooo');
                 userOutputEmbed.addFields({ name: "\n\n", value: 'This user has reapplied' }).setFooter({ text: '\n Powered by SAFFIRE', iconURL: `${imageURL}` })
 
+
+
+            } else {
+                userOutputEmbed.setFooter({ text: ` Powered by SAFFIRE `, iconURL: `${imageURL}` })
+
+
+
             }
+
+
+
+
+            // if (commandUsagesCount === 1) {
+            //     userOutputEmbed.setFooter({ text: ` Powered by SAFFIRE `, iconURL: `${imageURL}` })//.setThumbnail('https://images.dog.ceo/breeds/terrier-toy/n02087046_9864.jpg')
+
+
+            // } else if (commandUsagesCount >= 2) {
+            //     userOutputEmbed.addFields({ name: "\n\n", value: 'This user has reapplied' }).setFooter({ text: '\n Powered by SAFFIRE', iconURL: `${imageURL}` })
+
+            // }
 
 
 
