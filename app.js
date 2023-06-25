@@ -1,7 +1,7 @@
 const { Client, GatewayIntentBits, ModalBuilder, Events, ActionRowBuilder, TextInputBuilder, TextInputStyle, EmbedBuilder, ButtonBuilder, ButtonStyle, messageLink, GuildMemberRoleManager, Collection } = require('discord.js')
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMessageReactions] });
 const dotenv = require("dotenv")
-const fs = require('fs')
+// const fs = require('fs')
 
 
 
