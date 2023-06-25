@@ -12,7 +12,6 @@ const roleId = process.env.ROLE_ID
 const roleId3x = process.env.ROLE_ID_LIMITER
 const roleId2x = process.env.ROLE_ID_2X
 const roleId1x = process.env.ROLE_ID_1X
-console.log(roleId2x, roleId1x)
 
 const userVotes = new Map();
 const commandUsages = new Map();
