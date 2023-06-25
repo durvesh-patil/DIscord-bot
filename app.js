@@ -17,7 +17,7 @@ const userVotes = new Map();
 const commandUsages = new Map();
 
 
-const maxUsage = 3;
+
 const imageURL = 'https://images.dog.ceo/breeds/terrier-toy/n02087046_9864.jpg';
 
 
